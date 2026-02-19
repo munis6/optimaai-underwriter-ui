@@ -7,7 +7,7 @@ import PdfButton from "./PdfButton";
 function App() {
   // ✅ FIXED — wrap payload ONCE
   async function callBackendEnrich(payload) {
-    const res = await fetch("http://127.0.0.1:8000/enrich", {
+    const res = await fetch("https://optimaai-underwriter-backend.onrender.com/enrich", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

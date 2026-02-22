@@ -1,34 +1,31 @@
-from app.normalizer.normalizer import normalize_incoming_json
-
 """
 Phase‑2 Context Builder
 -----------------------
-Takes the enriched underwriting JSON (Phase 1 output)
-and converts it into a clean, unified context dictionary
-that all PDF pages can consume.
+Takes the enriched underwriting JSON (Phase 2 output)
+and passes it directly into the PDF pages.
 
-This is the ONLY source of truth for the PDF.
+The enriched JSON is already canonical and does NOT need normalization.
 """
 
 def build_context(enriched_json):
     """
     Phase‑2 unified context builder.
-    Takes normalized JSON and exposes ALL sections to the PDF pages.
+    The enriched JSON from dispatch_output() is already in the correct
+    canonical structure for all PDF pages.
     """
-    normalized = normalize_incoming_json(enriched_json)
 
-    # Pass everything through exactly as-is
+    # Pass enriched JSON directly to PDF pages
     return {
-        "customer": normalized.get("customer"),
-        "applicant": normalized.get("applicant"),
-        "drivers": normalized.get("drivers"),
-        "vehicles": normalized.get("vehicles"),
-        "coverage": normalized.get("coverage"),
-        "policy": normalized.get("policy"),
-        "pricing": normalized.get("pricing"),
-        "risk": normalized.get("risk"),
-        "summary": normalized.get("summary"),
-        "compliance": normalized.get("compliance"),
-        "aiInsights": normalized.get("aiInsights"),
-        "lineage": normalized.get("lineage"),
+        "customer": enriched_json.get("customer"),
+        "applicant": enriched_json.get("applicant"),
+        "drivers": enriched_json.get("drivers"),
+        "vehicles": enriched_json.get("vehicles"),
+        "coverage": enriched_json.get("coverage"),
+        "policy": enriched_json.get("policy"),
+        "pricing": enriched_json.get("pricing"),
+        "risk": enriched_json.get("risk"),
+        "summary": enriched_json.get("summary"),
+        "compliance": enriched_json.get("compliance"),
+        "aiInsights": enriched_json.get("aiInsights"),
+        "lineage": enriched_json.get("lineage"),
     }

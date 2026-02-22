@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 print(">>> MAIN.PY LOADED <<<")
 
 # ============================
-# CORS MUST BE DECLARED BEFORE APP AND ROUTER IMPORTS
+# CORS MUST BE DECLARED BEFORE ROUTER IMPORT
 # ============================
 origins = [
     "http://localhost:3000",
@@ -15,7 +15,7 @@ origins = [
     "https://optimaai-underwriter-ui.onrender.com"
 ]
 
-# Create app FIRST
+# Create FastAPI app
 app = FastAPI()
 
 # Apply CORS middleware BEFORE importing routers

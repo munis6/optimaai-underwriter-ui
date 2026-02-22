@@ -29,23 +29,33 @@ def receive_input(payload: UnderwriterInput):
 
 @router.post("/generate-compliance-report")
 def generate_compliance_report(payload: dict):
-    processed = payload.get("processed_data", {})
+    print(">>> PDF ENDPOINT HIT <<<")
 
-    summary_obj = ComplianceSummary(
-        state=None,
-        stateFullName=None,
-        overallComplianceStatus=None,
-        rulesChecked=[],
-        complianceSummary="",
-        underwritingSummary={},
-        aiInsightsSummary={},
-    )
+    # Render-safe temp path
+    output_path = "/tmp/compliance_report.pdf"
 
-    output_path = "test_placeholder.pdf"
-    generate_pdf(output_path)
+    try:
+        print(">>> Generating PDF at:", output_path)
+        generate_pdf(output_path)
+    except Exception as e:
+        print(">>> PDF GENERATION ERROR:", e)
+        return {
+            "error": "PDF generation failed",
+            "details": str(e)
+        }
 
-    with open(output_path, "rb") as f:
-        pdf_bytes = f.read()
+    try:
+        print(">>> Reading PDF bytes...")
+        with open(output_path, "rb") as f:
+            pdf_bytes = f.read()
+    except Exception as e:
+        print(">>> FILE READ ERROR:", e)
+        return {
+            "error": "PDF read failed",
+            "details": str(e)
+        }
+
+    print(">>> PDF SUCCESSFULLY RETURNED <<<")
 
     return Response(
         content=pdf_bytes,

@@ -18,14 +18,8 @@ def home():
 @router.post("/receive")
 def receive_input(payload: UnderwriterInput):
     processed = process_data(payload.data)
-    final_output = dispatch_output(processed)
+    return processed
 
-    risk_score = final_output.get("finalDecision", {}).get("riskScore")
-
-    return {
-        "status": "received",
-        "riskScore": risk_score
-    }
 
 @router.post("/generate-compliance-report")
 def generate_compliance_report(payload: dict):

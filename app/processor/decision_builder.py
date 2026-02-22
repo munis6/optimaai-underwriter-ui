@@ -1,6 +1,5 @@
 # app/processor/decision_builder.py
 
-# Orchestration helpers: high‑level processors that build AI insights, summaries, and compliance blocks
 from app.processor.ai_engine import AIEngine
 from app.processor.compliance_preprocessor import build_compliance_block
 from app.processor.ai_insights import parse_ai_output
@@ -8,17 +7,12 @@ from app.processor.summary_builder import build_summary
 from app.processor.executive_summary import build_executive_summary
 from app.processor.state_compliance_builder import build_state_compliance
 
-# NEW — Underwriting Summary + AI Insights Summary for PDF
 from app.services.underwriting_engine import (
     generate_underwriting_summary,
     generate_ai_insights
 )
 
 def build_decision_json(extracted, underwriting):
-    """
-    Step 4.0:
-    Build the final OptimaAI decision JSON.
-    """
     print(">>> USING UPDATED DECISION BUILDER <<<")
 
     # -----------------------------
@@ -52,9 +46,18 @@ def build_decision_json(extracted, underwriting):
         "drivers": extracted.get("drivers"),
         "guidewire": extracted.get("guidewire"),
 
+        # ⭐ FIX: include riskScore at the top level
+        "riskScore": underwriting.get("riskScore"),
+
         "underwriting": {
             "vehicles": underwriting.get("vehicles"),
-            "drivers": underwriting.get("drivers")
+            "drivers": underwriting.get("drivers"),
+
+            # ⭐ FIX: include riskScore inside underwriting block
+            "riskScore": underwriting.get("riskScore"),
+            "eligibility": underwriting.get("eligibility"),
+            "details": underwriting.get("details"),
+            "summary": underwriting.get("summary"),
         },
 
         "aiInsights": ai_insights_dict,

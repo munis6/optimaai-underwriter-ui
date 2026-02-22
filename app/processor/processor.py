@@ -3,14 +3,14 @@
 # -----------------------------
 # Imports
 # -----------------------------
+from app.normalizer.normalizer import normalize_incoming_json
+
 from app.services.underwriting_engine import (
     calculate_risk_score,
     determine_eligibility,
     build_summary_block,
     build_ai_insights,
     build_underwriting_details,
-    generate_underwriting_summary,
-    generate_ai_insights,
 )
 
 from .extractors import (
@@ -30,9 +30,9 @@ from .decision_builder import build_decision_json
 def process_data(payload):
     """
     Step 4.0:
-    - Extract fields (Step 2.2)
-    - Run underwriting logic (Step 2.3)
-    - Build final OptimaAI decision JSON with AI insights (Step 4.0)
+    - Normalize raw data
+    - Run underwriting logic
+    - Build final OptimaAI decision JSON with AI insights
     """
 
     # -----------------------------
@@ -49,7 +49,7 @@ def process_data(payload):
     accidents = payload.get("accidents", [])
 
     # -----------------------------
-    # Step 2.2 — Extraction Layer
+    # Step 1 — Extraction Layer (raw → extracted)
     # -----------------------------
     _customer_info = handle_customer(customer)
     _vehicle_info_list = [handle_vehicle(v) for v in vehicles]
@@ -76,15 +76,59 @@ def process_data(payload):
     }
 
     # -----------------------------
-    # Step 2.3 — Underwriting Logic
+    # Step 2 — NORMALIZATION (raw → normalized)
     # -----------------------------
-    risk_score = calculate_risk_score(drivers, vehicles)
-    eligibility = determine_eligibility(drivers, vehicles)
-    summary = build_summary_block(risk_score, eligibility)
-    ai = build_ai_insights(customer, coverage, risk_score)
-    details = build_underwriting_details(drivers, vehicles, risk_score, base_premium)
+    normalized = normalize_incoming_json(payload)
 
+    customer_n = normalized["customer"]
+    drivers_n = normalized["drivers"]
+    vehicles_n = normalized["vehicles"]
+    coverage_n = normalized["coverage"]
+    guidewire_n = normalized["guidewire"]
+    policy_n = normalized["policy"]     # <-- FIXED (now defined)
+
+    # -----------------------------
+    # Step 3 — Underwriting Logic (normalized → scoring)
+    # -----------------------------
+    risk_score = calculate_risk_score(
+        customer_n,
+        drivers_n,
+        vehicles_n,
+        coverage_n,
+        guidewire_n
+    )
+
+    eligibility = determine_eligibility(drivers_n, vehicles_n)
+
+    summary = build_summary_block(
+        customer_n,
+        drivers_n,
+        vehicles_n,
+        risk_score,
+        base_premium,
+        eligibility
+    )
+
+    ai = build_ai_insights(customer_n, coverage_n, risk_score)
+
+    details = build_underwriting_details(
+        drivers_n,
+        vehicles_n,
+        risk_score,
+        base_premium
+    )
+
+    # -----------------------------
+    # FULL Underwriting Context (for AI + PDF)
+    # -----------------------------
     underwriting = {
+        "customer": customer_n,
+        "drivers": drivers_n,
+        "vehicles": vehicles_n,
+        "coverage": coverage_n,
+        "policy": policy_n,        # <-- FIXED
+        "guidewire": guidewire_n,
+
         "riskScore": risk_score,
         "eligibility": eligibility,
         "summary": summary,
@@ -93,7 +137,7 @@ def process_data(payload):
     }
 
     # -----------------------------
-    # Step 4.0 — Final Decision JSON
+    # Step 4 — Final Decision JSON
     # -----------------------------
     final_decision = build_decision_json(extracted, underwriting)
     return final_decision

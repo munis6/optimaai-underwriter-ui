@@ -6,6 +6,7 @@ def normalize_incoming_json(raw_json):
     """
     Convert ANY insurer JSON into the Canonical OptimaAI JSON format.
     """
+
     # -------------------------
     # CUSTOMER SECTION
     # -------------------------
@@ -15,13 +16,13 @@ def normalize_incoming_json(raw_json):
             "insured.givenName",
             "applicant.firstName",
             "policyHolder.firstName"
-        ]),
+        ]) or "",
         "lastName": find_value(raw_json, [
             "customer.lastName",
             "insured.familyName",
             "applicant.lastName",
             "policyHolder.lastName"
-        ]),
+        ]) or "",
         "age": find_value(raw_json, [
             "customer.age",
             "insured.age",
@@ -31,29 +32,30 @@ def normalize_incoming_json(raw_json):
             "customer.licenseNumber",
             "insured.license",
             "applicant.licenseNumber"
-        ]),
+        ]) or "",
         "address": {
             "street": find_value(raw_json, [
                 "customer.address.street",
                 "insured.location.street",
                 "riskLocation.street"
-            ]),
+            ]) or "",
             "city": find_value(raw_json, [
                 "customer.address.city",
                 "insured.location.city",
                 "riskLocation.city"
-            ]),
+            ]) or "",
             "state": find_value(raw_json, [
                 "customer.address.state",
                 "insured.location.stateCd",
                 "riskLocation.state"
-            ]),
+            ]) or "",
             "zip": find_value(raw_json, [
                 "customer.address.zip",
                 "insured.location.postalCode",
                 "riskLocation.zipCode"
-            ])
-        }
+            ]) or ""
+        },
+        "raw": raw_json.get("customer", {})
     }
 
     # -------------------------
@@ -68,14 +70,44 @@ def normalize_incoming_json(raw_json):
 
     drivers = []
     for d in raw_drivers:
-        drivers.append({
-            "firstName": find_value(d, ["firstName", "fname", "givenName"]),
-            "lastName": find_value(d, ["lastName", "lname", "familyName"]),
+        normalized_driver = {
+            "firstName": find_value(d, ["firstName", "fname", "givenName"]) or "",
+            "lastName": find_value(d, ["lastName", "lname", "familyName"]) or "",
             "age": find_value(d, ["age"]),
-            "licenseNumber": find_value(d, ["licenseNumber", "license"]),
+            "licenseNumber": find_value(d, ["licenseNumber", "license"]) or "",
             "accidents": find_value(d, ["accHist", "accidents", "accidentCount"]) or 0,
             "violations": find_value(d, ["violations", "violationCount"]) or 0,
             "majorViolation": find_value(d, ["majorViolation", "majorViol"]) or False
+        }
+
+        drivers.append({
+            "raw": d,
+            "normalized": normalized_driver
+        })
+
+    # -------------------------
+    # VEHICLES SECTION (FIXED)
+    # -------------------------
+    raw_vehicles = find_list(raw_json, [
+        "vehicles",
+        "autos",
+        "riskVehicles",
+        "vehicleList"
+    ])
+
+    vehicles = []
+    for v in raw_vehicles:
+        normalized_vehicle = {
+            "vin": find_value(v, ["vin", "VIN", "vehicleId"]),
+            "year": find_value(v, ["year", "modelYear"]),
+            "make": find_value(v, ["make", "manufacturer"]),
+            "model": find_value(v, ["model", "vehicleModel"]),
+            "annualMileage": find_value(v, ["annualMileage", "mileage"])
+        }
+
+        vehicles.append({
+            "raw": v,
+            "normalized": normalized_vehicle
         })
 
     # -------------------------
@@ -103,8 +135,10 @@ def normalize_incoming_json(raw_json):
             "sourceSystem",
             "system",
             "origin"
-        ])
+        ]),
+        "raw": raw_json.get("policy", {})
     }
+
     # -------------------------
     # APPLICANT (for PDF)
     # -------------------------
@@ -114,8 +148,10 @@ def normalize_incoming_json(raw_json):
         "name": raw_applicant.get("name", ""),
         "state": raw_applicant.get("state", ""),
         "zip": raw_applicant.get("zip", ""),
-        "address": raw_applicant.get("address", "")
+        "address": raw_applicant.get("address", ""),
+        "raw": raw_applicant
     }
+
     # -------------------------
     # RISK SECTION (for PDF)
     # -------------------------
@@ -138,6 +174,7 @@ def normalize_incoming_json(raw_json):
             "uw.riskDrivers"
         ])
     }
+
     # -------------------------
     # PRICING SECTION (for PDF)
     # -------------------------
@@ -178,11 +215,13 @@ def normalize_incoming_json(raw_json):
             "premium.narrative",
             "pricingNotes"
         ]),
-        "topPricingFactors": find_list(raw_json, 
-            [ "pricing.topPricingFactors", # <-- canonical path if added later 
-             "pricing.factors", 
-             "underwriting.pricingFactors" ])
+        "topPricingFactors": find_list(raw_json, [
+            "pricing.topPricingFactors",
+            "pricing.factors",
+            "underwriting.pricingFactors"
+        ])
     }
+
     # -------------------------
     # SUMMARY SECTION (for PDF)
     # -------------------------
@@ -195,6 +234,7 @@ def normalize_incoming_json(raw_json):
             "narrative"
         ])
     }
+
     # -------------------------
     # COMPLIANCE SECTION (for PDF)
     # -------------------------
@@ -224,6 +264,7 @@ def normalize_incoming_json(raw_json):
             "underwriting.rules"
         ])
     }
+
     # -------------------------
     # AI INSIGHTS SECTION (for PDF)
     # -------------------------
@@ -259,6 +300,7 @@ def normalize_incoming_json(raw_json):
             "uw.narrative"
         ])
     }
+
     # -------------------------
     # DATA LINEAGE SECTION (for PDF)
     # -------------------------
@@ -274,7 +316,68 @@ def normalize_incoming_json(raw_json):
             "traceability.missing"
         ]) or []
     }
-    
+
+    # -------------------------
+    # GUIDEWIRE SECTION
+    # -------------------------
+    raw_guidewire = raw_json.get("guidewire", {})
+
+    guidewire = {
+        "state": raw_guidewire.get("state") or policy.get("state"),
+        "raw": raw_guidewire
+    }
+
+    # -------------------------
+    # COVERAGE SECTION (FIXED)
+    # -------------------------
+    raw_coverage = raw_json.get("coverage", {})
+
+    coverage = {
+        "liabilityLimit": raw_coverage.get("liabilityLimit")
+            or find_value(raw_json, [
+                "coverage.liabilityLimit",
+                "limits.liability",
+                "policy.coverage.liability",
+                "liabilityLimit"
+            ]),
+
+        "collisionDeductible": raw_coverage.get("collisionDeductible")
+            or find_value(raw_json, [
+                "coverage.collisionDeductible",
+                "deductibles.collision",
+                "collisionDeductible"
+            ]),
+
+        "comprehensiveDeductible": raw_coverage.get("comprehensiveDeductible")
+            or find_value(raw_json, [
+                "coverage.comprehensiveDeductible",
+                "deductibles.comprehensive",
+                "comprehensiveDeductible"
+            ]),
+
+        "deductible": raw_coverage.get("deductible")
+            or raw_coverage.get("collisionDeductible")
+            or find_value(raw_json, [
+                "coverage.deductible",
+                "deductible",
+                "deductibles.collision",
+                "coverage.collisionDeductible"
+            ]),
+
+        "coverageType": (
+            raw_coverage.get("coverageType")
+            or find_value(raw_json, [
+                "coverage.coverageType",
+                "coverage.type",
+                "policy.coverage.type",
+                "coverageType"
+            ])
+            or "Standard Auto"
+        ),
+
+        "raw": raw_coverage
+    }
+
     # -------------------------
     # FINAL CANONICAL STRUCTURE
     # -------------------------
@@ -282,16 +385,16 @@ def normalize_incoming_json(raw_json):
         "customer": customer,
         "applicant": applicant,
         "drivers": drivers,
-        "vehicles": [],
-        "coverage": {},
+        "vehicles": vehicles,
+        "coverage": coverage,
         "policy": policy,
+        "guidewire": guidewire,
 
-        # New sections (empty for now) 
-        "pricing": pricing, 
+        "pricing": pricing,
         "risk": risk,
-        "summary": summary, 
-        "compliance": compliance, 
-        "aiInsights": ai_insights, 
+        "summary": summary,
+        "compliance": compliance,
+        "aiInsights": ai_insights,
         "lineage": lineage
     }
 

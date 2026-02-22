@@ -2,6 +2,7 @@ def build_summary_block(customer, drivers, vehicles, risk_score, base_premium, e
     """
     Builds the underwriting summary block for the PDF and UI.
     """
+
     return {
         "customer": {
             "firstName": customer.get("firstName"),
@@ -9,6 +10,7 @@ def build_summary_block(customer, drivers, vehicles, risk_score, base_premium, e
             "age": customer.get("age"),
             "zip": (customer.get("raw") or {}).get("address", {}).get("zip"),
         },
+
         "drivers": [
             {
                 "firstName": d["raw"].get("firstName"),
@@ -19,6 +21,7 @@ def build_summary_block(customer, drivers, vehicles, risk_score, base_premium, e
             }
             for d in drivers
         ],
+
         "vehicles": [
             {
                 "model": v["raw"].get("model"),
@@ -27,6 +30,7 @@ def build_summary_block(customer, drivers, vehicles, risk_score, base_premium, e
             }
             for v in vehicles
         ],
+
         "riskScore": risk_score,
         "basePremium": base_premium,
         "eligibility": eligibility,

@@ -6,34 +6,51 @@ def build_underwriting_details(drivers, vehicles, risk_score, base_premium):
 
     eligibility = "Eligible"
 
-    uw_vehicles = [
-        {
-            "vehicle": v["raw"],
-            "rulesResult": {"rulesFired": [], "status": "rules evaluated (placeholder)"},
+    # -----------------------------
+    # VEHICLES (FIXED)
+    # -----------------------------
+    uw_vehicles = []
+    for v in vehicles:
+        uw_vehicles.append({
+            "raw": v.get("raw", {}),
+            "normalized": v.get("normalized", {}),
+            "rulesResult": {
+                "rulesFired": [],
+                "status": "rules evaluated (placeholder)"
+            },
             "riskScore": risk_score,
             "premium": base_premium,
             "eligibility": eligibility,
-        }
-        for v in vehicles
-    ]
+        })
 
-    uw_drivers = [
-        {
-            "firstName": d["raw"].get("firstName"),
-            "lastName": d["raw"].get("lastName"),
-            "age": d["raw"].get("age"),
-            "licenseNumber": d["raw"].get("licenseNumber"),
-            "yearsLicensed": d["raw"].get("yearsLicensed"),
-            "accidents": d["raw"].get("accidents"),
-            "violations": d["raw"].get("violations"),
-            "claims": d["raw"].get("claims"),
-            "isPrimaryDriver": d["raw"].get("isPrimaryDriver"),
-        }
-        for d in drivers
-    ]
+    # -----------------------------
+    # DRIVERS (SAFE + NORMALIZED)
+    # -----------------------------
+    uw_drivers = []
+    for d in drivers:
+        raw = d.get("raw", {})
+        norm = d.get("normalized", {})
 
+        uw_drivers.append({
+            "raw": raw,
+            "normalized": norm,
+            "firstName": raw.get("firstName"),
+            "lastName": raw.get("lastName"),
+            "age": raw.get("age"),
+            "licenseNumber": raw.get("licenseNumber"),
+            "yearsLicensed": raw.get("yearsLicensed"),
+            "accidents": raw.get("accidents"),
+            "violations": raw.get("violations"),
+            "claims": raw.get("claims"),
+            "isPrimaryDriver": raw.get("isPrimaryDriver"),
+        })
+
+    # -----------------------------
+    # FINAL UNDERWRITING BLOCK
+    # -----------------------------
     return {
         "vehicles": uw_vehicles,
         "drivers": uw_drivers,
+        "riskScore": risk_score,
         "eligibility": eligibility
     }

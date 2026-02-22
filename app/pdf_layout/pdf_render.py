@@ -34,6 +34,45 @@ from app.pdf_layout.fonts.register_fonts import register_fonts
 register_fonts()
 
 
+def safe_context(ctx):
+    """
+    Global null‑safety wrapper.
+    Ensures every PDF page receives safe defaults.
+    Prevents: 'NoneType' object has no attribute 'get'
+    """
+
+    ctx = ctx or {}
+
+    # Coverage fallback
+    coverage = ctx.get("coverage") or {}
+    coverage["coverageType"] = coverage.get("coverageType") or "Standard Auto"
+    coverage["liabilityLimit"] = coverage.get("liabilityLimit") or 0
+    coverage["deductible"] = coverage.get("deductible") or 0
+    ctx["coverage"] = coverage
+
+    # Vehicles fallback
+    vehicles = ctx.get("vehicles") or []
+    ctx["vehicles"] = vehicles
+
+    # Drivers fallback
+    drivers = ctx.get("drivers") or []
+    ctx["drivers"] = drivers
+
+    # Risk score fallback
+    ctx["riskScore"] = ctx.get("riskScore") or 0
+
+    # Compliance fallback
+    ctx["compliance"] = ctx.get("compliance") or {}
+
+    # State compliance fallback
+    ctx["stateCompliance"] = ctx.get("stateCompliance") or {}
+
+    # AI insights fallback
+    ctx["aiInsights"] = ctx.get("aiInsights") or {}
+
+    return ctx
+
+
 def generate_pdf(output_path, enriched_json):
     """
     Phase‑2 PDF generation pipeline.
@@ -43,6 +82,9 @@ def generate_pdf(output_path, enriched_json):
 
     print(">>> Building Phase‑2 context from API payload <<<")
     context = build_context(enriched_json)
+
+    # ⭐ Apply global null‑safety
+    context = safe_context(context)
 
     print(">>> Rendering PDF <<<")
     c = canvas.Canvas(output_path, pagesize=letter)

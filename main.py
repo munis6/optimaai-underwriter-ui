@@ -7,10 +7,8 @@ from app.routers.enrich_router import router
 
 print(">>> MAIN.PY LOADED <<<")
 
-app = FastAPI()
-
 # ============================
-# CORS FIX (REQUIRED FOR FRONTEND)
+# CORS MUST BE APPLIED BEFORE ROUTES
 # ============================
 origins = [
     "http://localhost:3000",
@@ -18,13 +16,17 @@ origins = [
     "https://optimaai-underwriter-ui.onrender.com"
 ]
 
+app = FastAPI()
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,      # MUST be explicit, cannot be "*"
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Register all routes
+# ============================
+# ROUTES MUST BE INCLUDED AFTER CORS
+# ============================
 app.include_router(router)
